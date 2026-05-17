@@ -1,6 +1,8 @@
 from server import PromptServer
 import os
 
+from .interrupt_utils import InterruptProcessingException
+
 def get_base_dir():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
@@ -58,6 +60,9 @@ class BaseModelDownloader:
             if finalize:
                 self.update_status("Complete!", 100)
             return {}
-        except Exception as e:
+        except BaseException as e:
+            if InterruptProcessingException and isinstance(e, InterruptProcessingException):
+                print("Download interrupted by user")
+                raise
             print(f"Error occurred: {str(e)}")
-            raise e
+            raise

@@ -73,6 +73,20 @@ app.registerExtension({
             };
         });
 
+        function clearNodeProgress(node) {
+            if (!node) return;
+            node.progress = undefined;
+            node.setDirtyCanvas(true);
+        }
+
+        api.addEventListener("execution_interrupted", () => {
+            for (const node of app.graph._nodes ?? []) {
+                if (NODE_TYPES.includes(node.type)) {
+                    clearNodeProgress(node);
+                }
+            }
+        });
+
         api.addEventListener("progress", ({ detail }) => {
             if (!detail?.node) return;
 

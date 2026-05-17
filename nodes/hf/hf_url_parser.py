@@ -4,6 +4,7 @@ from urllib.parse import unquote, urlparse
 
 from ..base_downloader import get_model_dirs
 from ..download_utils import DownloadManager
+from ..interrupt_utils import throw_if_interrupted
 from .hf_download import HFDownloader
 from .hf_utils import hf_download_url
 
@@ -208,6 +209,7 @@ class HFUrlDownloader(HFDownloader):
         model_dirs = get_model_dirs()
 
         for i, (repo_id, repo_filename, revision) in enumerate(items):
+            throw_if_interrupted()
             final_path, save_filename = resolve_save_target(
                 repo_filename, local_path, model_dirs, local_path_override
             )
