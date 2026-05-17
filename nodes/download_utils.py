@@ -6,19 +6,20 @@ import shutil
 
 class DownloadManager:
     @staticmethod
-    def download_with_progress(url, save_path, progress_callback=None, params=None, chunk_size=1024*1024):
+    def download_with_progress(url, save_path, progress_callback=None, params=None, chunk_size=1024*1024, filename=None):
         response = requests.get(url, stream=True, params=params)
         response.raise_for_status()
         
         total_size = int(response.headers.get('content-length', 0))
-        filename = DownloadManager._get_filename(response, url)
-        full_path = os.path.join(save_path, filename)
+        resolved_filename = filename or DownloadManager._get_filename(response, url)
+        full_path = os.path.join(save_path, resolved_filename)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
         temp_path = full_path + '.tmp'
         
         downloaded = 0
         try:
             with open(temp_path, 'wb') as file:
-                with tqdm(total=total_size, unit='iB', unit_scale=True, desc=filename) as pbar:
+                with tqdm(total=total_size, unit='iB', unit_scale=True, desc=resolved_filename) as pbar:
                     for data in response.iter_content(chunk_size=chunk_size):
                         size = file.write(data)
                         downloaded += size

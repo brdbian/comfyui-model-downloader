@@ -1,14 +1,19 @@
 from .nodes.auto.downloader import AutoModelDownloader
 from .nodes.cai.cai_download import CivitAIDownloader
 from .nodes.hf.hf_download import HFDownloader
+from .nodes.hf.hf_url_parser import HFUrlDownloader, HFUrlParser
 
 NODE_CLASS_MAPPINGS = {
+    "HF URL Downloader": HFUrlDownloader,
+    "HF URL Parser": HFUrlParser,
     "HF Downloader": HFDownloader,
     "Auto Model Downloader": AutoModelDownloader,
     "CivitAI Downloader": CivitAIDownloader,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "HF URL Downloader": "HF URL Download",
+    "HF URL Parser": "HF URL Parser",
     "HF Downloader": "HF Download",
     "Auto Model Downloader": "Auto Model Finder (Experimental)",
     "CivitAI Downloader": "CivitAI Download",

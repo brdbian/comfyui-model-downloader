@@ -1,5 +1,6 @@
 from ..base_downloader import BaseModelDownloader, get_model_dirs
 from ..download_utils import DownloadManager
+from .hf_utils import configure_hf_mirror, hf_download_url
 
 class HFDownloader(BaseModelDownloader):     
     @classmethod
@@ -12,6 +13,7 @@ class HFDownloader(BaseModelDownloader):
                 
             },
             "optional": {
+                "revision": ("STRING", {"default": "main", "multiline": False}),
                 "overwrite": ("BOOLEAN", {"default": True}),
                 "local_path_override": ("STRING", {"default": ""}),
             },
@@ -22,7 +24,7 @@ class HFDownloader(BaseModelDownloader):
         
     FUNCTION = "download"
 
-    def download(self, repo_id, filename, local_path, node_id, overwrite=False, local_path_override=""):
+    def download(self, repo_id, filename, local_path, node_id, revision="main", overwrite=False, local_path_override=""):
         if not repo_id or not filename:
             print(f"Missing required values: repo_id='{repo_id}', filename='{filename}'")
             return {}
@@ -32,7 +34,7 @@ class HFDownloader(BaseModelDownloader):
         print(f'downloading model {repo_id} {filename} {final_path} {node_id} {overwrite}')
         self.node_id = node_id
         save_path = self.prepare_download_path(final_path, filename)
-        url = f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
+        url = hf_download_url(repo_id, filename, revision or "main")
         
         return self.handle_download(
             DownloadManager.download_with_progress,
@@ -40,7 +42,8 @@ class HFDownloader(BaseModelDownloader):
             filename=filename,
             overwrite=overwrite,
             url=url,
-            progress_callback=self
+            progress_callback=self,
+            download_filename=filename,
         )
     
 
@@ -68,7 +71,7 @@ class HFAuthDownloader(HFDownloader):  # Inherit from HFDownloader to share meth
     def download_model(self, repo_id, filename, local_path, hf_token, overwrite):
         print(f'downloading model {repo_id} {filename} {local_path} {hf_token} {overwrite}')
         try:
-            # Always use token for auth version
+            configure_hf_mirror()
             import huggingface_hub
             huggingface_hub.login(token=hf_token)
             

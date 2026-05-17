@@ -1,6 +1,8 @@
 import aiohttp
 import re
 
+from ..hf.hf_utils import HF_MIRROR_BASE
+
 _model_cache = {}
 
 async def search_for_model(filename):
@@ -33,7 +35,7 @@ async def search_for_model(filename):
     
     components = extract_model_components(filename)
     
-    base_url = "https://huggingface.co/api/models"
+    base_url = f"{HF_MIRROR_BASE}/api/models"
     search_queries = []
 
     if components["core_name"]:

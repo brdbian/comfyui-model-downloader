@@ -2,9 +2,19 @@ import os
 from tqdm import tqdm
 import requests
 
+HF_MIRROR_BASE = "https://hf-mirror.com"
+
+
+def hf_download_url(repo_id, filename, revision="main"):
+    return f"{HF_MIRROR_BASE}/{repo_id}/resolve/{revision}/{filename}"
+
+
+def configure_hf_mirror():
+    os.environ.setdefault("HF_ENDPOINT", HF_MIRROR_BASE)
+
 
 def download_hf(repo_id, filename, save_path, overwrite=False, progress_callback=None):
-    URL = f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
+    URL = hf_download_url(repo_id, filename)
     
     # Get file size first
     response = requests.get(URL, stream=True)

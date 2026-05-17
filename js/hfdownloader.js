@@ -5,7 +5,7 @@ app.registerExtension({
     name: "HF Downloader",
     async setup() {        
         // Handle both node types
-        const nodeTypes = ["HF Downloader", "Auto Model Downloader"];
+        const nodeTypes = ["HF URL Downloader", "HF Downloader", "Auto Model Downloader"];
         
         nodeTypes.forEach(nodeType => {
             const origNode = LiteGraph.registered_node_types[nodeType];
