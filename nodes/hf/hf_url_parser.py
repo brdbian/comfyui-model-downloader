@@ -1,23 +1,13 @@
-import os
 import re
 from urllib.parse import unquote, urlparse
 
 from ..base_downloader import get_model_dirs
+from ..download_progress import BatchProgress
 from ..download_utils import DownloadManager
 from ..interrupt_utils import throw_if_interrupted
+from ..path_utils import resolve_save_target
 from .hf_download import HFDownloader
 from .hf_utils import hf_download_url
-
-
-class _BatchProgress:
-    def __init__(self, downloader, index: int, total: int):
-        self._downloader = downloader
-        self._index = index
-        self._total = total
-
-    def set_progress(self, progress: float):
-        overall = ((self._index + progress / 100.0) / self._total) * 100.0
-        self._downloader.set_progress(overall)
 
 _SUPPORTED_HOSTS = frozenset(
     {"huggingface.co", "www.huggingface.co", "hf-mirror.com", "www.hf-mirror.com"}
@@ -78,51 +68,6 @@ def parse_hf_urls(urls_text: str) -> list[tuple[str, str, str]]:
         raise ValueError("请提供至少一个 Hugging Face 链接（每行一个）")
 
     return items
-
-
-def suggest_local_path(filename: str, model_dirs: list[str]) -> str:
-    normalized = filename.replace("\\", "/").lower()
-    hints = (
-        ("text_encoders", "text_encoders"),
-        ("diffusion_models", "diffusion_models"),
-        ("/unet/", "diffusion_models"),
-        ("/vae/", "vae"),
-        ("/clip/", "clip"),
-        ("/loras/", "loras"),
-        ("/lora/", "loras"),
-    )
-    for pattern, folder in hints:
-        if pattern in normalized and folder in model_dirs:
-            return folder
-
-    _, ext = os.path.splitext(os.path.basename(filename))
-    if ext in (".ckpt", ".safetensors", ".pt", ".pth", ".bin"):
-        for folder in ("checkpoints", "diffusion_models", "unet"):
-            if folder in model_dirs:
-                return folder
-
-    return model_dirs[0] if model_dirs else "checkpoints"
-
-
-def resolve_save_target(
-    repo_filename: str,
-    local_path: str,
-    model_dirs: list[str],
-    local_path_override: str = "",
-) -> tuple[str, str]:
-    """返回 (models 子目录, 本地保存文件名)。Auto 模式下仅保留文件名，不嵌套仓库路径。"""
-    if local_path_override:
-        final_path = local_path_override
-        flatten = True
-    elif local_path == "Auto":
-        final_path = suggest_local_path(repo_filename, model_dirs)
-        flatten = True
-    else:
-        final_path = local_path
-        flatten = False
-
-    save_filename = os.path.basename(repo_filename) if flatten else repo_filename
-    return final_path, save_filename
 
 
 class HFUrlParser:
@@ -229,7 +174,7 @@ class HFUrlDownloader(HFDownloader):
                 filename=save_filename,
                 overwrite=overwrite,
                 url=download_url,
-                progress_callback=_BatchProgress(self, i, total),
+                progress_callback=BatchProgress(self, i, total),
                 download_filename=save_filename,
                 finalize=is_last,
             )

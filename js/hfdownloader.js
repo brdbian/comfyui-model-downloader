@@ -2,7 +2,13 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 const NODE_MAX_WIDTH = 420;
-const NODE_TYPES = ["HF URL Downloader", "HF Downloader", "Auto Model Downloader"];
+const NODE_TYPES = [
+    "HF URL Downloader",
+    "HF Downloader",
+    "MS URL Downloader",
+    "MS Downloader",
+    "Auto Model Downloader",
+];
 
 function getTitleBarWidth(node, size) {
     const defaultWidth = node.constructor?.size?.[0];
@@ -21,7 +27,7 @@ function constrainNodeWidth(node) {
 }
 
 function constrainUrlWidget(node) {
-    if (node.type !== "HF URL Downloader") return;
+    if (node.type !== "HF URL Downloader" && node.type !== "MS URL Downloader") return;
     const widget = node.widgets?.find((w) => w.name === "url");
     if (!widget?.inputEl) return;
     widget.inputEl.style.maxWidth = `${NODE_MAX_WIDTH - 20}px`;
@@ -55,7 +61,10 @@ app.registerExtension({
                     ctx.rect(0, 0, barWidth, title_height);
                     ctx.clip();
 
-                    ctx.fillStyle = "rgba(32, 128, 255, 0.35)";
+                    const isMS = this.type.startsWith("MS ");
+                    ctx.fillStyle = isMS
+                        ? "rgba(106, 60, 220, 0.4)"
+                        : "rgba(32, 128, 255, 0.35)";
                     ctx.beginPath();
                     if (ctx.roundRect) {
                         ctx.roundRect(0, 0, width, title_height, [4, 4, 0, 0]);

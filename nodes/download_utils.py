@@ -15,10 +15,13 @@ class DownloadManager:
         save_path,
         progress_callback=None,
         params=None,
+        headers=None,
         chunk_size=1024 * 1024,
         filename=None,
     ):
-        response = requests.get(url, stream=True, params=params)
+        response = requests.get(
+            url, stream=True, params=params, headers=headers or {}
+        )
         response.raise_for_status()
 
         total_size = int(response.headers.get("content-length", 0))
