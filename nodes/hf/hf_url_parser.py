@@ -103,6 +103,27 @@ def suggest_local_path(filename: str, model_dirs: list[str]) -> str:
     return model_dirs[0] if model_dirs else "checkpoints"
 
 
+def resolve_save_target(
+    repo_filename: str,
+    local_path: str,
+    model_dirs: list[str],
+    local_path_override: str = "",
+) -> tuple[str, str]:
+    """返回 (models 子目录, 本地保存文件名)。Auto 模式下仅保留文件名，不嵌套仓库路径。"""
+    if local_path_override:
+        final_path = local_path_override
+        flatten = True
+    elif local_path == "Auto":
+        final_path = suggest_local_path(repo_filename, model_dirs)
+        flatten = True
+    else:
+        final_path = local_path
+        flatten = False
+
+    save_filename = os.path.basename(repo_filename) if flatten else repo_filename
+    return final_path, save_filename
+
+
 class HFUrlParser:
     @classmethod
     def INPUT_TYPES(cls):
@@ -132,10 +153,16 @@ class HFUrlParser:
             return str(e)
 
     def parse(self, url):
-        repo_id, filename, revision = parse_hf_url(url)
-        local_path = suggest_local_path(filename, get_model_dirs())
-        print(f"[HF URL Parser] {repo_id} @ {revision} → {filename} ({local_path})")
-        return (repo_id, filename, revision, local_path)
+        repo_id, repo_filename, revision = parse_hf_url(url)
+        model_dirs = get_model_dirs()
+        local_path, save_filename = resolve_save_target(
+            repo_filename, "Auto", model_dirs
+        )
+        print(
+            f"[HF URL Parser] {repo_id} @ {revision} → "
+            f"models/{local_path}/{save_filename}"
+        )
+        return (repo_id, repo_filename, revision, local_path)
 
 
 class HFUrlDownloader(HFDownloader):
@@ -180,31 +207,28 @@ class HFUrlDownloader(HFDownloader):
         total = len(items)
         model_dirs = get_model_dirs()
 
-        for i, (repo_id, filename, revision) in enumerate(items):
-            if local_path_override:
-                final_path = local_path_override
-            elif local_path == "Auto":
-                final_path = suggest_local_path(filename, model_dirs)
-            else:
-                final_path = local_path
+        for i, (repo_id, repo_filename, revision) in enumerate(items):
+            final_path, save_filename = resolve_save_target(
+                repo_filename, local_path, model_dirs, local_path_override
+            )
 
             print(
                 f"[HF URL Downloader] ({i + 1}/{total}) {repo_id} @ {revision} "
-                f"→ {filename} → models/{final_path}"
+                f"→ models/{final_path}/{save_filename}"
             )
 
-            save_path = self.prepare_download_path(final_path, filename)
-            download_url = hf_download_url(repo_id, filename, revision)
+            save_path = self.prepare_download_path(final_path, save_filename)
+            download_url = hf_download_url(repo_id, repo_filename, revision)
             is_last = i == total - 1
 
             self.handle_download(
                 DownloadManager.download_with_progress,
                 save_path=save_path,
-                filename=filename,
+                filename=save_filename,
                 overwrite=overwrite,
                 url=download_url,
                 progress_callback=_BatchProgress(self, i, total),
-                download_filename=filename,
+                download_filename=save_filename,
                 finalize=is_last,
             )
             if not is_last:
